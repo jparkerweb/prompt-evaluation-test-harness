@@ -1,0 +1,10 @@
+{"messageContent": "Hi, when will my order arrive?", "label": true}
+{"messageContent": "Payment processed for $49.99", "label": false}
+{"messageContent": "Can you help me with my account?", "label": true}
+{"messageContent": "Order confirmation #12345", "label": false}
+{"messageContent": "I have a question about my bill", "label": true}
+{"messageContent": "Your subscription has been renewed", "label": false}
+{"messageContent": "Is my package delayed?", "label": true}
+{"messageContent": "Welcome to our service!", "label": false}
+{"messageContent": "I need to cancel my order", "label": true}
+{"messageContent": "Invoice #INV-001 is ready", "label": false}

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV to JSONL Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background-color: #fafafa;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #1976d2;
+            background-color: #f0f7ff;
+        }
+        .upload-area.dragover {
+            border-color: #1976d2;
+            background-color: #e3f2fd;
+        }
+        .file-input {
+            display: none;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #e3f2fd;
+            color: #1976d2;
+            display: none;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            display: block;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            display: block;
+        }
+        .download-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #1976d2;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+        }
+        .download-btn:hover {
+            background-color: #1565c0;
+        }
+        .download-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .preview {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        .upload-icon {
+            font-size: 48px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>CSV to JSONL Converter</h1>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <p><strong>Click to select a CSV file</strong><br>or drag and drop it here</p>
+            <input type="file" id="fileInput" class="file-input" accept=".csv">
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <button id="downloadBtn" class="download-btn" disabled style="display: none;">Download JSONL File</button>
+        
+        <div id="preview" class="preview">
+            <strong>Preview (first 5 lines):</strong>
+            <pre id="previewContent"></pre>
+        </div>
+    </div>
+
+    <script>
+        let jsonlContent = '';
+        let currentFileName = '';
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const statusEl = document.getElementById('status');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const previewEl = document.getElementById('preview');
+        const previewContent = document.getElementById('previewContent');
+        
+        // Click to upload
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // Drag and drop handlers
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].name.endsWith('.csv')) {
+                handleFile(files[0]);
+            } else {
+                showError('Please select a CSV file');
+            }
+        });
+        
+        // File input change handler
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        function showError(message) {
+            statusEl.className = 'status error';
+            statusEl.textContent = message;
+            downloadBtn.style.display = 'none';
+            previewEl.style.display = 'none';
+        }
+        
+        function showSuccess(message) {
+            statusEl.className = 'status success';
+            statusEl.innerHTML = message;
+            downloadBtn.style.display = 'inline-block';
+        }
+        
+        async function handleFile(file) {
+            if (!file.name.endsWith('.csv')) {
+                showError('Please select a CSV file');
+                return;
+            }
+            
+            currentFileName = file.name.replace('.csv', '');
+            statusEl.className = 'status';
+            statusEl.style.display = 'block';
+            statusEl.textContent = 'Reading CSV file...';
+            
+            try {
+                const text = await file.text();
+                
+                statusEl.textContent = 'Parsing CSV data...';
+                
+                // Parse the CSV
+                const parsed = Papa.parse(text, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true
+                });
+                
+                if (parsed.errors.length > 0) {
+                    throw new Error('CSV parsing errors: ' + parsed.errors.map(e => e.message).join(', '));
+                }
+                
+                statusEl.textContent = 'Converting to JSONL format...';
+                
+                // Convert to JSONL format (one JSON object per line)
+                const jsonlLines = parsed.data.map(row => JSON.stringify(row));
+                jsonlContent = jsonlLines.join('\n');
+                
+                // Show preview
+                const preview = jsonlLines.slice(0, 5).map((line, i) => {
+                    const truncated = line.length > 200 ? line.substring(0, 200) + '...' : line;
+                    return `Line ${i + 1}: ${truncated}`;
+                }).join('\n\n');
+                
+                previewContent.textContent = preview;
+                previewEl.style.display = 'block';
+                
+                // Update status
+                showSuccess(`
+                    <strong>Conversion successful!</strong><br>
+                    File: ${file.name}<br>
+                    Converted ${parsed.data.length} rows to JSONL format<br>
+                    Total size: ${(jsonlContent.length / 1024).toFixed(2)} KB
+                `);
+                
+                // Enable download button
+                downloadBtn.disabled = false;
+                
+            } catch (error) {
+                showError('Error: ' + error.message);
+                console.error('Conversion error:', error);
+            }
+        }
+        
+        // Download function
+        function downloadJSONL() {
+            if (!jsonlContent) return;
+            
+            const blob = new Blob([jsonlContent], { type: 'application/jsonl' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = currentFileName + '.jsonl';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // Set up download button
+        downloadBtn.addEventListener('click', downloadJSONL);
+    </script>
+</body>
+</html>

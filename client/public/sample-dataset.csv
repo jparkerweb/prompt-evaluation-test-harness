@@ -1,0 +1,11 @@
+messageContent,label
+"Hi, when will my order arrive?",true
+"Payment processed for $49.99",false
+"Can you help me with my account?",true
+"Order confirmation #12345",false
+"I have a question about my bill",true
+"Your subscription has been renewed",false
+"Is my package delayed?",true
+"Welcome to our service!",false
+"I need to cancel my order",true
+"Invoice #INV-001 is ready",false
